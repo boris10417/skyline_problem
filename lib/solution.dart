@@ -1,4 +1,3 @@
-
 /*
   設 
     所有的垂直線，p1都是下方點，p2都是上方點
@@ -6,7 +5,7 @@
 
   已知
     一個組合建築輪廓的右下點必為天際線頂點
-    若點為 某個輪廓水平線的左頂點 且 (某個輪廓垂直線的上頂點 或 某個輪廓垂直線的下頂點) 則該點為天際線頂點
+    nodePath中，偶數索引位置都是天際線頂點
  */
 
 import 'package:skyline_problem/model/line.dart';
@@ -26,6 +25,27 @@ class Solution {
 
   //所有水平線可能的y座標們
   List<int> yCoordinateOfHorizontalLines = [];
+
+  List<List<int>> getSkyline(List<List<int>> buildings) {
+    buildVerticalLineAndHorzontalLine(buildings);
+
+    // 計算起點到終點的頂點路徑
+    List<Node> nodePath = collectNodePath();
+
+    // print("nodePath:$nodePath");
+
+    // 根據nodePath找出答案節點...
+    // 此節點滿足 任一垂直線的p1 且 任一水平線的p1 則為答案
+    // 最右下角的點只要存在一個buildings就必為答案之一
+
+    //取得天際點
+    List<Node> allSkylinePoints = getSkylineFromNodePath(nodePath);
+
+    //List<Node> -> List<List<int>>
+    List<List<int>> answer = allSkylinePoints.map((e) => [e.x, e.y]).toList();
+    // print("answer = $answer");
+    return answer;
+  }
 
   ///取出垂直線與水平線
   void buildVerticalLineAndHorzontalLine(List<List<int>> buildings) {
@@ -59,27 +79,6 @@ class Solution {
 
     xCoordinateOfVerticalLines = xToVerticalLine.keys.toList();
     yCoordinateOfHorizontalLines = yToHorizontalLine.keys.toList();
-  }
-
-  List<List<int>> getSkyline(List<List<int>> buildings) {
-    buildVerticalLineAndHorzontalLine(buildings);
-
-    // 計算起點到終點的頂點路徑
-    List<Node> nodePath = collectNodePath();
-
-    // print("nodePath:$nodePath");
-
-    // 根據nodePath找出答案節點...
-    // 此節點滿足 任一垂直線的p1 且 任一水平線的p1 則為答案
-    // 最右下角的點只要存在一個buildings就必為答案之一
-
-    //取得天際點
-    List<Node> allSkylinePoints = getSkylineFromNodePath(nodePath);
-
-    //List<Node> -> List<List<int>>
-    List<List<int>> answer = allSkylinePoints.map((e) => [e.x, e.y]).toList();
-    // print("answer = $answer");
-    return answer;
   }
 
   /// 從nodePath中取出天際線點
@@ -125,100 +124,6 @@ class Solution {
     }
   }
 
-  ///取出在地平線上的頂點們
-  List<Node> getNodeOnGround(List<Node> nodePath) {
-    final answer = nodePath.where((e) => e.y == 0).toList();
-
-    //若地上的節點長度為奇數，去除(0,0)
-    if (answer.length % 2 != 0) {
-      //長度為奇數，去除(0,0)
-      answer.removeAt(0);
-    }
-    return answer;
-  }
-
-  ///天際線頂點們 x從小排到大
-  List<Node> sortSkylinePointsInAscend(List<Node> nodes) {
-    List<Node> answer = nodes;
-    //x從小排到大
-    answer.sort((a, b) => a.x.compareTo(b.x));
-    return answer;
-  }
-
-  /// 在地平線上，取出每組建築的右側頂點回傳
-  /// ps:兩個點為一個建築，建築的右邊頂點必為skyline point，所以直接取偶數位置出來
-  List<Node> calculateSkylinePointsOnGround(List<Node> nodeOnGround) {
-    List<Node> answer = [];
-
-    for (var i = 0; i < nodeOnGround.length; i++) {
-      if (i % 2 != 0) {
-        //ps:陣列從[0]開始，因此條件取的是奇數index位置
-        answer.add(nodeOnGround[i]);
-      }
-    }
-    return answer;
-  }
-
-  //計算天際線頂點們
-  List<Node> calculateSkylinePointsOnBuildings(List<Node> nodePath) {
-    List<Line> allVerticalLines = [];
-    List<Line> allHorizontalLines = [];
-
-    //根據路徑紀錄所有的垂直線與水平線
-    for (var i = 0; i < nodePath.length - 1; i++) {
-      Line newLine = Line(nodePath[i], nodePath[i + 1]);
-      if (newLine.isVertical()) {
-        allVerticalLines.add(newLine);
-      } else {
-        if (newLine.p1.y == 0) {
-          //若線在地平線上，不紀錄
-        } else {
-          //若線不在地平線上，紀錄
-          allHorizontalLines.add(newLine);
-        }
-      }
-    }
-    List<Node> skylinePointsOnBuildings = [];
-    //去除nodePath在地平線上的節點
-    final nodePathNotOnGround = nodePath.where((e) => e.y != 0);
-
-    for (var node in nodePathNotOnGround) {
-      //是否為某個垂直線的下頂點 isBottomOfANode
-      bool isBottomNodeOfVerticalLine =
-          allVerticalLines.any((e) => isSameNode(e.p1, node));
-      //是否為某個垂直線的上頂點
-      bool isTopNodeOfVerticalLine =
-          allVerticalLines.any((e) => isSameNode(e.p2, node));
-
-      //是否為某個水平線的左頂點
-      bool isLeftNodeOfHorizontalLine =
-          allHorizontalLines.any((e) => isSameNode(e.p1, node));
-
-      //若點為 某個水平線的左頂點 且 (某個垂直線的上頂點 或 某個垂直線的下頂點) 則該點為天際線頂點
-      if (isLeftNodeOfHorizontalLine &&
-          (isTopNodeOfVerticalLine || isBottomNodeOfVerticalLine)) {
-        skylinePointsOnBuildings.add(node);
-      }
-    }
-    return skylinePointsOnBuildings;
-  }
-
-  //是否為天際線頂點
-  bool isSkylinePoint(
-      Node node, List<Line> allVerticalLines, List<Line> allHorizontalLines) {
-    bool condition2 = allHorizontalLines.any((e) {
-      //只算p1，因為p1必定在左方
-      return isSameNode(node, e.p1);
-    });
-
-    return condition2;
-  }
-
-  ///右側仍有建築
-  bool existOneBuildingOnRightSide(List<Line> verticalLines) {
-    return verticalLines.isNotEmpty;
-  }
-
   ///存在一條向右的路
   bool existOneRoadToRight(Node currentPosition, List<Line> horizontalLines) {
     if (currentPosition.y == 0) {
@@ -236,10 +141,7 @@ class Solution {
 
   //計算下個前進的方向
   Direction calculateNextDirection(
-      Node currentPosition,
-      // List<Line> verticalLines,
-      // List<Line> horizontalLines,
-      Direction lastDirection) {
+      Node currentPosition, Direction lastDirection) {
     //與現在位置連通的垂直線們
     List<Line>? availableVerticalLines = xToVerticalLine[currentPosition.x];
 
@@ -268,10 +170,7 @@ class Solution {
   }
 
   ///找上方的前進終點
-  Node calculateNextPositionInUp(
-    Node currentPosition,
-    //  List<Line> remainedHorizontalLines
-  ) {
+  Node calculateNextPositionInUp(Node currentPosition) {
     //取得該x的所有垂直線
     List<Line> availableVerticalLines = xToVerticalLine[currentPosition.x]!;
     //取得p2.y最大的該條垂直線當終點
@@ -282,10 +181,7 @@ class Solution {
   }
 
   ///找右方的前進終點
-  Node calculateNextPositionInRight(
-    Node currentPosition,
-    // List<Line> remainedVerticalLines, List<Line> remainedHorizontalLines
-  ) {
+  Node calculateNextPositionInRight(Node currentPosition) {
     return getRightPosition(currentPosition);
   }
 
@@ -315,7 +211,6 @@ class Solution {
     for (var i = firstYIndex; i < yCoordinateOfHorizontalLines.length; i++) {
       if (currentPosition.y > yCoordinateOfHorizontalLines[i]) {
         //取第一個現在位置.y之下的水平線投影點
-
         return Node(currentPosition.x, yCoordinateOfHorizontalLines[i]);
       }
     }
@@ -342,17 +237,6 @@ class Solution {
     return horizontalLines;
   }
 
-  /// 取得y最高的那條水平線
-  Line getTheHighestHorizontalLine(List<Line> horizontalLines) {
-    //由於之前已經排序過，所以最後一個是最高位置
-    return horizontalLines.last;
-  }
-
-  /// 取得所有在同一x軸線上的垂直線們
-  List<Line> getAllVerticalLinesInSameX(int x, List<Line> verticalLines) {
-    return xToVerticalLine[x]!;
-  }
-
   /// 取得p2.y最高的那條垂直線
   Line getTheHighestVerticalLine(List<Line> verticalLines) {
     Line highest = verticalLines[0];
@@ -366,24 +250,6 @@ class Solution {
     return highest;
   }
 
-  /// 存在至少一條水平線可以向右走
-  bool existAtLeastOneHorizontalLineCanWalk(
-      Node currentPosition, List<Line> horizontalLines) {
-    //若位置在地平線上，必存在路向右走
-    if (currentPosition.y == 0) {
-      return true;
-    }
-
-    for (var horizontalLine in horizontalLines) {
-      //若現在位置在該水平線上 且 現在位置.x < 右頂點.x
-      if (horizontalLine.isNodeOnLine(currentPosition) &&
-          currentPosition.x < horizontalLine.p2.x) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   //還沒到終點時
   bool notReachEndPoint(Node currentPosition, Node endPoint) {
     return isSameNode(currentPosition, endPoint) == false;
@@ -393,8 +259,10 @@ class Solution {
   List<Node> collectNodePath() {
     //從原點開始走
     Node currentPosition = Node(0, 0);
+
     //初始方向為無
     Direction currentDirection = Direction.none;
+
     //起點到終點的頂點路徑(記錄用)
     List<Node> answerPath = [Node(0, 0)];
 
@@ -426,10 +294,7 @@ class Solution {
         case Direction.right:
 
           //計算右方的終點位置
-          Node nextPosition = calculateNextPositionInRight(
-            currentPosition,
-            //  remainedVerticalLines, remainedHorizontalLines
-          );
+          Node nextPosition = calculateNextPositionInRight(currentPosition);
 
           //更新現在位置
           currentPosition = nextPosition;
@@ -472,5 +337,3 @@ class Solution {
     return answerPath;
   }
 }
-
-

@@ -2,7 +2,7 @@
 https://leetcode.com/problems/the-skyline-problem/description/
 
 ## 解題時間
-約8天，4天寫出方法，4天優化到不會timeout
+約8天，4天寫出第一個版本，4天優化到不會timeout
 
 ## 執行時間
 本地測約300ms
